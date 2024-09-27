@@ -20,6 +20,8 @@ const GoalInput = ({ onAddGoal, visible, onEndGoal }) => {
     setEnteredGoalText('');
   };
 
+  console.log('Created data has been rendered');
+
   return (
     <Modal visible={visible} animationType="slide">
       <View style={styles.inputContainer}>
