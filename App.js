@@ -1,85 +1,112 @@
-import { useState } from 'react';
-import { StyleSheet, View, FlatList, Button } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { useState, useEffect } from 'react';
+import {
+  StyleSheet,
+  ImageBackground,
+  SafeAreaView,
+  Platform,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView as SafeAreaViewAndroid } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 
-import GoalItem from './components/GoalItem';
-import GoalInput from './components/GoalInput';
+import StartGameScreen from './screens/StartGameScreen';
+import GameScreen from './screens/GameScreen';
+import GameOverScreen from './screens/GameOverScreen';
+import Colors from './constants/colors';
+
+SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-  const [modalIsVisible, setModalIsVisible] = useState(false);
-  const [courseGoals, setCourseGoals] = useState([]);
+  const [userNumber, setUserNumber] = useState();
+  const [gameIsOver, setGameIsOver] = useState(true);
+  const [guessRounds, setGuessRounds] = useState(0);
 
-  const startAddGoalHandler = () => {
-    setModalIsVisible(true);
+  const [fontsLoaded] = useFonts({
+    'open-sans': require('./assets/fonts/OpenSans-Regular.ttf'),
+    'open-sans-bold': require('./assets/fonts/OpenSans-Bold.ttf'),
+  });
+
+  // Watch for fonts to be loaded, then hide the splash screen
+  useEffect(() => {
+    const hideSplashScreen = async () => {
+      await SplashScreen.hideAsync();
+    };
+    if (fontsLoaded) {
+      hideSplashScreen();
+    }
+  }, [fontsLoaded]);
+
+  // Initally return null instead of <AppLoading />
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  const pickedNumberHandler = (pickedNumber) => {
+    setUserNumber(pickedNumber);
+    setGameIsOver(false);
   };
 
-  const endAddGoalHandler = () => {
-    setModalIsVisible(false);
+  const gameOverHandler = (numberOfRounds) => {
+    setGameIsOver(true);
+    setGuessRounds(numberOfRounds);
   };
 
-  const addGoalHandler = (enteredGoalText) => {
-    //this is the better way of updating your state based on previous state
-    setCourseGoals((currentCourseGoals) => [
-      ...currentCourseGoals,
-      //this is the first way to get the key for the flat list
-      // make it into an object which has a key property. That is required.
-      { text: enteredGoalText, id: Math.random().toString() },
-    ]);
-    endAddGoalHandler();
+  const startNewGameHandler = () => {
+    setUserNumber(null);
+    setGuessRounds(0);
   };
 
-  const deleteGoalHandler = (id) => {
-    setCourseGoals((currentCourseGoals) => {
-      return currentCourseGoals.filter((goal) => goal.id !== id);
-    });
-  };
+  let screen = <StartGameScreen onPickNumber={pickedNumberHandler} />;
+
+  if (userNumber) {
+    screen = (
+      <GameScreen userNumber={userNumber} onGameOver={gameOverHandler} />
+    );
+  }
+
+  if (gameIsOver && userNumber) {
+    screen = (
+      <GameOverScreen
+        userNumber={userNumber}
+        roundsNumber={guessRounds}
+        onStartNewGame={startNewGameHandler}
+      />
+    );
+  }
 
   return (
-    <>
-      <StatusBar style="light" />
-      <View style={styles.appContainer}>
-        <Button
-          title="Add New Goal"
-          color="#a065ec"
-          onPress={startAddGoalHandler}
-        />
-        <GoalInput
-          visible={modalIsVisible}
-          onAddGoal={addGoalHandler}
-          onEndGoal={endAddGoalHandler}
-        />
-        <View style={styles.goalsContainer}>
-          {/* use FlatList for dynamic data and lists that might be very long to lazy load them in when they get close */}
-          <FlatList
-            data={courseGoals}
-            renderItem={(itemData) => {
-              return (
-                <GoalItem
-                  text={itemData.item.text}
-                  onDeleteItem={deleteGoalHandler}
-                  id={itemData.item.id}
-                />
-              );
-            }}
-            // second way to get the key for a Flatlist if the object does not contain the key property
-            keyExtractor={(item, index) => {
-              return item.id;
-            }}
-            alwaysBounceVertical={false}
-          />
-        </View>
-      </View>
-    </>
+    <LinearGradient
+      colors={[Colors.primary700, Colors.accent500]}
+      style={styles.rootScreen}
+    >
+      <ImageBackground
+        source={require('./assets/images/background.png')}
+        resizeMode="cover"
+        style={styles.rootScreen}
+        imageStyle={styles.backgroundImage}
+      >
+        {Platform.OS === 'android' ? (
+          // SafeAreaView does not work on android.
+          // use the one from react-native-safe-area-context
+          // and use an alias as below.
+          <SafeAreaViewAndroid style={styles.rootScreen}>
+            {screen}
+          </SafeAreaViewAndroid>
+        ) : (
+          //SafeAreaView works for IOS only
+          <SafeAreaView style={styles.rootScreen}>{screen}</SafeAreaView>
+        )}
+      </ImageBackground>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  appContainer: {
+  rootScreen: {
     flex: 1,
-    paddingTop: 50,
-    paddingHorizontal: 16,
   },
-  goalsContainer: {
-    flex: 5,
+  backgroundImage: {
+    opacity: 0.15,
   },
 });
