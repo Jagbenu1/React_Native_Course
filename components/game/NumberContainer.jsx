@@ -10,12 +10,16 @@ const NumberContainer = ({ children }) => {
   );
 };
 
+//use this to access the dimensions API.
+//window and screen do not matter which on IOS.
+//On Android, Window is for the screen minus the status bar and screen is for everything on the screen.
 const deviceWidth = Dimensions.get('window').width;
 
 const styles = StyleSheet.create({
   container: {
     borderWidth: 4,
     borderColor: Colors.accent500,
+    //The dimension API can be used with ternary operation as below.
     padding: deviceWidth < 380 ? 12 : 24,
     margin: deviceWidth < 380 ? 12 : 24,
     borderRadius: 8,
